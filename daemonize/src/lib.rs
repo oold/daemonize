@@ -533,7 +533,7 @@ unsafe fn get_group(group: Group) -> Result<libc::gid_t, ErrorKind> {
 }
 
 unsafe fn set_group(group: libc::gid_t) -> Result<(), ErrorKind> {
-    check_err(libc::setgid(group), ErrorKind::SetGroup)?;
+    check_err(libc::setregid(group, group), ErrorKind::SetGroup)?;
     Ok(())
 }
 
@@ -551,7 +551,7 @@ unsafe fn get_user(user: User) -> Result<libc::uid_t, ErrorKind> {
 }
 
 unsafe fn set_user(user: libc::uid_t) -> Result<(), ErrorKind> {
-    check_err(libc::setuid(user), ErrorKind::SetUser)?;
+    check_err(libc::setreuid(user, user), ErrorKind::SetUser)?;
     Ok(())
 }
 
