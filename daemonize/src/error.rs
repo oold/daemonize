@@ -19,14 +19,18 @@
 
 pub type Errno = libc::c_int;
 
-/// This error type for `Daemonize` `start` method.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct Error {
-    kind: ErrorKind,
+/// Error type returned by `Daemonize::start()`.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct Error(ErrorKind);
+
+impl Error {
+    pub fn kind(&self) -> ErrorKind {
+        self.0
+    }
 }
 
-/// This error type for `Daemonize` `start` method.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+/// Error kind used inside `struct Error`.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum ErrorKind {
     Fork(Errno),
     Wait(Errno),
@@ -127,7 +131,7 @@ impl std::error::Error for ErrorKind {}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}", self.kind())
     }
 }
 
@@ -135,7 +139,7 @@ impl std::error::Error for Error {}
 
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Self {
-        Self { kind }
+        Self(kind)
     }
 }
 
@@ -173,7 +177,10 @@ impl Num for isize {
     }
 }
 
-pub fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(ret: N, f: F) -> Result<N, ErrorKind> {
+pub unsafe fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(
+    ret: N,
+    f: F,
+) -> Result<N, ErrorKind> {
     if ret.is_err() {
         Err(f(errno()))
     } else {
@@ -181,8 +188,6 @@ pub fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(ret: N, f: F) -> Result<
     }
 }
 
-pub fn errno() -> Errno {
-    std::io::Error::last_os_error()
-        .raw_os_error()
-        .expect("errno")
+pub unsafe fn errno() -> Errno {
+    *libc::__errno_location()
 }

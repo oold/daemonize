@@ -70,9 +70,9 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{exit, ExitStatus};
 
-use self::error::{check_err, errno, ErrorKind};
+use self::error::{check_err, errno};
 
-pub use self::error::Error;
+pub use self::error::{Error, ErrorKind};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum UserImpl {
