@@ -63,9 +63,9 @@ use std::ffi::CString;
 use std::fmt;
 use std::fs::File;
 use std::mem::transmute;
+use std::os::fd::OwnedFd;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::io::AsRawFd;
-use std::os::unix::io::RawFd;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
@@ -147,7 +147,7 @@ impl From<u32> for Mask {
 enum StdioImpl {
     Devnull,
     RedirectToFile(File),
-    RedirectToRawFd(RawFd),
+    RedirectToFd(OwnedFd),
     Keep,
 }
 
@@ -179,10 +179,10 @@ impl From<File> for Stdio {
     }
 }
 
-impl From<RawFd> for Stdio {
-    fn from(fd: RawFd) -> Self {
+impl From<OwnedFd> for Stdio {
+    fn from(fd: OwnedFd) -> Self {
         Self {
-            inner: StdioImpl::RedirectToRawFd(fd),
+            inner: StdioImpl::RedirectToFd(fd),
         }
     }
 }
@@ -493,8 +493,11 @@ unsafe fn redirect_standard_streams(
                 let raw_fd = file.as_raw_fd();
                 check_err(libc::dup2(raw_fd, fd), ErrorKind::RedirectStreams)?;
             }
-            StdioImpl::RedirectToRawFd(raw_fd) => {
-                check_err(libc::dup2(raw_fd, fd), ErrorKind::RedirectStreams)?;
+            StdioImpl::RedirectToFd(owned_fd) => {
+                check_err(
+                    libc::dup2(owned_fd.as_raw_fd(), fd),
+                    ErrorKind::RedirectStreams,
+                )?;
             }
             StdioImpl::Keep => (),
         };
