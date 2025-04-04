@@ -66,8 +66,9 @@ use std::mem::transmute;
 use std::os::fd::OwnedFd;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::io::AsRawFd;
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::exit;
+use std::process::{exit, ExitStatus};
 
 use self::error::{check_err, errno, ErrorKind};
 
@@ -188,10 +189,10 @@ impl From<OwnedFd> for Stdio {
 }
 
 /// Parent process execution outcome.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Parent {
-    pub first_child_exit_code: libc::c_int,
+    pub first_child_exit_status: ExitStatus,
 }
 
 /// Child process execution outcome.
@@ -203,7 +204,7 @@ pub struct Child<T> {
 
 /// Daemonization process outcome. Can be matched to check is it a parent process or a child
 /// process.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Outcome<T> {
     Parent(Result<Parent, Error>),
     Child(Result<Child<T>, Error>),
@@ -357,13 +358,18 @@ impl<T> Daemonize<T> {
         self.stderr = stdio.into();
         self
     }
+
     /// Start daemonization process, terminate parent after first fork, returns privileged action
     /// result to the child.
     pub fn start(self) -> Result<T, Error> {
         match self.execute() {
             Outcome::Parent(Ok(Parent {
-                first_child_exit_code,
-            })) => exit(first_child_exit_code),
+                first_child_exit_status,
+            })) => exit(
+                first_child_exit_status
+                    .code()
+                    .unwrap_or_else(|| unsafe { libc::abort() }),
+            ),
             Outcome::Parent(Err(err)) => Err(err),
             Outcome::Child(Ok(child)) => Ok(child.privileged_action_result),
             Outcome::Child(Err(err)) => Err(err),
@@ -376,8 +382,8 @@ impl<T> Daemonize<T> {
             match perform_fork() {
                 Ok(Some(first_child_pid)) => Outcome::Parent(match waitpid(first_child_pid) {
                     Err(err) => Err(err.into()),
-                    Ok(first_child_exit_code) => Ok(Parent {
-                        first_child_exit_code,
+                    Ok(first_child_exit_status) => Ok(Parent {
+                        first_child_exit_status,
                     }),
                 }),
                 Err(err) => Outcome::Parent(Err(err.into())),
@@ -463,10 +469,10 @@ unsafe fn perform_fork() -> Result<Option<libc::pid_t>, ErrorKind> {
     }
 }
 
-unsafe fn waitpid(pid: libc::pid_t) -> Result<libc::c_int, ErrorKind> {
-    let mut child_ret = 0;
-    check_err(libc::waitpid(pid, &mut child_ret, 0), ErrorKind::Wait)?;
-    Ok(child_ret)
+unsafe fn waitpid(pid: libc::pid_t) -> Result<ExitStatus, ErrorKind> {
+    let mut status = 0;
+    check_err(libc::waitpid(pid, &mut status, 0), ErrorKind::Wait)?;
+    Ok(ExitStatus::from_raw(status))
 }
 
 unsafe fn set_sid() -> Result<(), ErrorKind> {
