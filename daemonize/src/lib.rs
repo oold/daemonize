@@ -170,7 +170,7 @@ impl From<File> for Stdio {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub struct Parent {
-    pub first_child_exit_code: i32,
+    pub first_child_exit_code: libc::c_int,
 }
 
 /// Child process execution outcome.
@@ -356,7 +356,7 @@ impl<T> Daemonize<T> {
                 Ok(Some(first_child_pid)) => Outcome::Parent(match waitpid(first_child_pid) {
                     Err(err) => Err(err.into()),
                     Ok(first_child_exit_code) => Ok(Parent {
-                        first_child_exit_code: first_child_exit_code as i32,
+                        first_child_exit_code,
                     }),
                 }),
                 Err(err) => Outcome::Parent(Err(err.into())),
