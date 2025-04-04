@@ -111,7 +111,7 @@ impl Tester {
     }
 
     pub fn user_num(&mut self, user: u32) -> &mut Self {
-        self.command.arg(ARG_USER_STRING).arg(user.to_string());
+        self.command.arg(ARG_USER_NUM).arg(user.to_string());
         self
     }
 
@@ -121,7 +121,7 @@ impl Tester {
     }
 
     pub fn group_num(&mut self, group: u32) -> &mut Self {
-        self.command.arg(ARG_GROUP_STRING).arg(group.to_string());
+        self.command.arg(ARG_GROUP_NUM).arg(group.to_string());
         self
     }
 
