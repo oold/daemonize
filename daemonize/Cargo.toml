@@ -1,10 +1,9 @@
 [package]
 name = "daemonize"
 version = "0.5.0"
-license = "MIT/Apache-2.0"
-authors = ["Fedor Gogolev <knsd@knsd.net>"]
-repository = "https://github.com/knsd/daemonize"
-documentation = "https://docs.rs/daemonize"
+license = "MIT OR Apache-2.0"
+authors = ["Fedor Gogolev <knsd@knsd.net>", "Oliver Old <mail@oold.dev>"]
+repository = "https://github.com/oold/daemonize"
 readme = "../README.md"
 description = "Library to enable your code run as a daemon process on Unix-like systems."
 keywords = ["daemon", "daemonize", "unix"]
