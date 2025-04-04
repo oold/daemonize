@@ -28,7 +28,10 @@ use std::str::FromStr;
 use daemonize::{Daemonize, Error, Outcome};
 
 const ARG_PID_FILE: &str = "--pid-file";
-const ARG_CHOWN_PID_FILE: &str = "--chown-pid-file";
+const ARG_CHOWN_PID_FILE_USER_STRING: &str = "--chown-pid-file-user-string";
+const ARG_CHOWN_PID_FILE_USER_NUM: &str = "--chown-pid-file-user-num";
+const ARG_CHOWN_PID_FILE_GROUP_STRING: &str = "--chown-pid-file-group-string";
+const ARG_CHOWN_PID_FILE_GROUP_NUM: &str = "--chown-pid-file-group-num";
 const ARG_WORKING_DIRECTORY: &str = "--working-directory";
 const ARG_USER_STRING: &str = "--user-string";
 const ARG_USER_NUM: &str = "--user-num";
@@ -73,8 +76,27 @@ impl Tester {
         self
     }
 
-    pub fn chown_pid_file(&mut self) -> &mut Self {
-        self.command.arg(ARG_CHOWN_PID_FILE);
+    pub fn chown_pid_file_user_string(&mut self, user: &str) -> &mut Self {
+        self.command.arg(ARG_CHOWN_PID_FILE_USER_STRING).arg(user);
+        self
+    }
+
+    pub fn chown_pid_file_user_num(&mut self, user: u32) -> &mut Self {
+        self.command
+            .arg(ARG_CHOWN_PID_FILE_USER_NUM)
+            .arg(user.to_string());
+        self
+    }
+
+    pub fn chown_pid_file_group_string(&mut self, group: &str) -> &mut Self {
+        self.command.arg(ARG_CHOWN_PID_FILE_GROUP_STRING).arg(group);
+        self
+    }
+
+    pub fn chown_pid_file_group_num(&mut self, group: u32) -> &mut Self {
+        self.command
+            .arg(ARG_CHOWN_PID_FILE_GROUP_NUM)
+            .arg(group.to_string());
         self
     }
 
@@ -229,7 +251,18 @@ pub fn execute_tester() {
     while let Some(key) = args.next() {
         daemonize = match key.as_str() {
             ARG_PID_FILE => daemonize.pid_file(read_value::<PathBuf>(&mut args, &key)),
-            ARG_CHOWN_PID_FILE => daemonize.chown_pid_file(true),
+            ARG_CHOWN_PID_FILE_USER_STRING => {
+                daemonize.chown_pid_file_user(read_value::<String>(&mut args, &key).as_str())
+            }
+            ARG_CHOWN_PID_FILE_USER_NUM => {
+                daemonize.chown_pid_file_user(read_value::<u32>(&mut args, &key))
+            }
+            ARG_CHOWN_PID_FILE_GROUP_STRING => {
+                daemonize.chown_pid_file_group(read_value::<String>(&mut args, &key).as_str())
+            }
+            ARG_CHOWN_PID_FILE_GROUP_NUM => {
+                daemonize.chown_pid_file_group(read_value::<u32>(&mut args, &key))
+            }
             ARG_WORKING_DIRECTORY => {
                 daemonize.working_directory(read_value::<PathBuf>(&mut args, &key))
             }

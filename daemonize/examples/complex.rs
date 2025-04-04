@@ -29,8 +29,9 @@ fn main() {
 
     let daemonize = Daemonize::new()
         .pid_file("/tmp/test.pid") // Every method except `new` and `start`
-        .chown_pid_file(true) // is optional, see `Daemonize` documentation
-        .working_directory("/tmp") // for default behaviour.
+        .chown_pid_file_user("nobody") // is optional, see `Daemonize` documentation
+        .chown_pid_file_group("daemon") // for default behaviour.
+        .working_directory("/tmp")
         .user("nobody")
         .group("daemon") // Group name
         .group(2) // or group id.
