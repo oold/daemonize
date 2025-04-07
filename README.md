@@ -8,7 +8,7 @@
 
 ### Example
 
-For an example on how to use this crate, see [`complex.rs`](https://github.com/oold/daemonize/blob/main/daemonize/examples/complex.rs).
+For an example on how to use this crate, see [`complex.rs`](https://github.com/oold/daemonize/blob/main/examples/complex.rs).
 
 ### License
 
