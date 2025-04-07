@@ -57,6 +57,7 @@
 
 mod error;
 
+extern crate errno;
 extern crate libc;
 
 use std::env::set_current_dir;
@@ -70,7 +71,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{exit, ExitStatus};
 
-use self::error::{check_err, errno};
+use self::error::check_err;
 
 pub use self::error::{Error, ErrorKind};
 
@@ -419,7 +420,8 @@ impl<T> Daemonize<T> {
 
     fn execute_child(self) -> Result<T, ErrorKind> {
         unsafe {
-            set_current_dir(&self.directory).map_err(|_| ErrorKind::ChangeDirectory(errno()))?;
+            set_current_dir(&self.directory)
+                .map_err(|_| ErrorKind::ChangeDirectory(errno::errno().into()))?;
             set_sid()?;
             libc::umask(self.umask.inner);
 

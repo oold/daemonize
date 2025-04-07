@@ -182,12 +182,8 @@ pub unsafe fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(
     f: F,
 ) -> Result<N, ErrorKind> {
     if ret.is_err() {
-        Err(f(errno()))
+        Err(f(errno::errno().into()))
     } else {
         Ok(ret)
     }
-}
-
-pub unsafe fn errno() -> Errno {
-    *libc::__errno_location()
 }
