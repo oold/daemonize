@@ -17,44 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//!
-//! daemonize is a library for writing system daemons. Inspired by the Python library [thesharp/daemonize](https://github.com/thesharp/daemonize).
-//!
-//! The respository is located at <https://github.com/oold/daemonize/>.
-//!
-//! Usage example:
-//!
-//! ```
-//! extern crate daemonize;
-//!
-//! use std::fs::File;
-//!
-//! use daemonize::Daemonize;
-//!
-//! fn main() {
-//!     let stdout = File::create("/tmp/daemon.out").unwrap();
-//!     let stderr = File::create("/tmp/daemon.err").unwrap();
-//!
-//!     let daemonize = Daemonize::new()
-//!         .pid_file("/tmp/test.pid")      // Every method except `new` and `start`
-//!         .chown_pid_file_user("nobody")  // is optional, see `Daemonize` documentation
-//!         .chown_pid_file_group("daemon") // for default behaviour.
-//!         .working_directory("/tmp")
-//!         .user("nobody")
-//!         .group("daemon") // Group name
-//!         .group(2)        // or group id.
-//!         .umask(0o777)    // Set umask, `0o027` by default.
-//!         .stdout(stdout)  // Redirect stdout to `/tmp/daemon.out`.
-//!         .stderr(stderr)  // Redirect stderr to `/tmp/daemon.err`.
-//!         .privileged_action(|| "Executed before drop privileges");
-//!
-//!     match daemonize.start() {
-//!         Ok(_) => println!("Success, daemonized"),
-//!         Err(e) => eprintln!("Error, {}", e),
-//!     }
-//! }
-//! ```
-
+#![doc = include_str!("../README.md")]
 #![cfg(unix)]
 
 mod error;
@@ -86,7 +49,7 @@ enum UserImpl {
     Id(libc::uid_t),
 }
 
-/// Expects system user id or name. If name is provided it will be resolved to id later.
+/// Expects system user ID or name. If a name is provided, it will be resolved to an ID later.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct User {
     inner: UserImpl,
@@ -114,7 +77,7 @@ enum GroupImpl {
     Id(libc::gid_t),
 }
 
-/// Expects system group id or name. If name is provided it will be resolved to id later.
+/// Expects system group ID or name. If a name is provided, it will be resolved to an ID later.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Group {
     inner: GroupImpl,

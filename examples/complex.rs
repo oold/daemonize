@@ -24,29 +24,39 @@ fn main() {
 
 #[cfg(unix)]
 mod unix {
-    extern crate daemonize;
+    extern crate daemonize2;
 
     use std::fs::File;
 
-    use self::daemonize::Daemonize;
+    use self::daemonize2::Daemonize;
 
     pub fn main() {
         let stdout = File::create("/tmp/daemon.out").unwrap();
         let stderr = File::create("/tmp/daemon.err").unwrap();
 
-        let daemonize = Daemonize::new()
-            .pid_file("/tmp/test.pid") // Every method except `new` and `start`
-            .chown_pid_file_user("nobody") // is optional, see `Daemonize` documentation
-            .chown_pid_file_group("daemon") // for default behaviour.
-            .working_directory("/tmp")
-            .user("nobody")
-            .group("daemon") // Group name
-            .group(2) // or group id.
-            .umask(0o777) // Set umask, `0o027` by default.
-            .stdout(stdout) // Redirect stdout to `/tmp/daemon.out`.
-            .stderr(stderr) // Redirect stderr to `/tmp/daemon.err`.
-            .privileged_action(|| "Executed before drop privileges");
+        // Every method except `new` and `start` is optional. See `Daemonize` documentation for
+        // default behaviour.
+        let mut daemonize = Daemonize::new();
 
+        daemonize = daemonize
+            .pid_file("/tmp/test.pid")
+            .chown_pid_file_user("nobody")
+            .chown_pid_file_group("daemon")
+            .working_directory("/tmp");
+
+        // User and group IDs can be either strings or integers.
+        daemonize = daemonize.user("nobody").group("daemon").group(2);
+
+        // Set umask. `0o027` by default.
+        daemonize = daemonize.umask(0o777);
+
+        // Redirect standard output and standard error.
+        daemonize = daemonize.stdout(stdout).stderr(stderr);
+
+        // Run a final privileged action.
+        let daemonize = daemonize.privileged_action(|| "Executed before drop privileges");
+
+        // Start the daemon.
         match daemonize.start() {
             Ok(_) => println!("Success, daemonized"),
             Err(e) => eprintln!("Error, {}", e),

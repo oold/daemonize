@@ -19,10 +19,10 @@
 
 #![cfg(all(unix, feature = "tester"))]
 
-extern crate daemonize;
+extern crate daemonize2;
 extern crate tempfile;
 
-use daemonize::tester_lib::{STDERR_DATA, STDOUT_DATA, Tester};
+use daemonize2::tester_lib::{STDERR_DATA, STDOUT_DATA, Tester};
 use tempfile::TempDir;
 
 #[test]

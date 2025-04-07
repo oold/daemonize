@@ -18,9 +18,9 @@
 // limitations under the License.
 
 #[cfg(all(unix, feature = "tester"))]
-extern crate daemonize;
+extern crate daemonize2;
 
 fn main() {
     #[cfg(all(unix, feature = "tester"))]
-    daemonize::tester_lib::execute_tester()
+    daemonize2::tester_lib::execute_tester()
 }
