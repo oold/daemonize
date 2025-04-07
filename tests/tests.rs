@@ -34,7 +34,10 @@ fn simple() {
 #[test]
 fn chdir() {
     let result = Tester::new().run();
-    assert_eq!(result.unwrap().cwd.as_str(), "/");
+    assert_eq!(
+        std::path::Path::new(result.unwrap().cwd.as_str()),
+        std::env::current_dir().unwrap()
+    );
 
     let result = Tester::new().working_directory("/usr").run();
     assert_eq!(result.unwrap().cwd.as_str(), "/usr");

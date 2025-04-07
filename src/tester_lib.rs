@@ -300,7 +300,7 @@ pub fn execute_tester() {
 
     let (mut read_pipe, mut write_pipe) = os_pipe::pipe().expect("unable to open pipe");
 
-    match daemonize.execute() {
+    match unsafe { daemonize.execute() } {
         Outcome::Parent(_) => {
             drop(write_pipe);
             let mut data = Vec::new();

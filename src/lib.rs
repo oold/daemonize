@@ -198,11 +198,11 @@ impl<T> Outcome<T> {
 /// Daemonization options.
 ///
 /// Fork the process in the background, disassociate from its process group and the control terminal.
-/// Change umask value to `0o027`, redirect all standard streams to `/dev/null`. Change working
-/// directory to `/` or provided value.
+/// Change umask value to `0o027`, redirect all standard streams to `/dev/null`.
 ///
 /// Optionally:
 ///
+///   * change working directory to provided value;
 ///   * maintain and lock the pid-file;
 ///   * drop user privileges;
 ///   * drop group privileges;
@@ -211,7 +211,7 @@ impl<T> Outcome<T> {
 ///   * execute any provided action just before dropping privileges.
 ///
 pub struct Daemonize<T> {
-    directory: PathBuf,
+    directory: Option<PathBuf>,
     pid_file: Option<PathBuf>,
     chown_pid_file_user: Option<User>,
     chown_pid_file_group: Option<Group>,
@@ -252,7 +252,7 @@ impl Default for Daemonize<()> {
 impl Daemonize<()> {
     pub fn new() -> Self {
         Daemonize {
-            directory: Path::new("/").to_owned(),
+            directory: None,
             pid_file: None,
             chown_pid_file_user: None,
             chown_pid_file_group: None,
@@ -287,9 +287,9 @@ impl<T> Daemonize<T> {
         self
     }
 
-    /// Change working directory to `path` or `/` by default.
+    /// Change working directory to `path`.
     pub fn working_directory<F: AsRef<Path>>(mut self, path: F) -> Self {
-        self.directory = path.as_ref().to_owned();
+        self.directory = Some(path.as_ref().to_owned());
         self
     }
 
@@ -400,8 +400,11 @@ impl<T> Daemonize<T> {
 
     unsafe fn execute_child(self) -> Result<T, ErrorKind> {
         unsafe {
-            set_current_dir(&self.directory)
-                .map_err(|_| ErrorKind::ChangeDirectory(errno::errno().into()))?;
+            if let Some(directory) = &self.directory {
+                set_current_dir(directory)
+                    .map_err(|_| ErrorKind::ChangeDirectory(errno::errno().into()))?;
+            }
+
             set_sid()?;
             libc::umask(self.umask.inner);
 

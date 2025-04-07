@@ -57,7 +57,7 @@ mod unix {
         let daemonize = daemonize.privileged_action(|| "Executed before drop privileges");
 
         // Start the daemon.
-        match daemonize.start() {
+        match unsafe { daemonize.start() } {
             Ok(_) => println!("Success, daemonized"),
             Err(e) => eprintln!("Error, {}", e),
         }
