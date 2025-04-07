@@ -1,7 +1,24 @@
-daemonize changelog
-===================
+daemonize2 changelog
+====================
 
-Here you can see the full list of changes between each daemonize release.
+Here you can see the full list of changes between each daemonize2 release.
+
+Version 0.6.0
+-------------
+
+Released on April 07, 2025
+
+  * Allow using a file descriptor for standard IO.
+  * Return `ExitStatus` from child exit.
+  * Make `ErrorKind` public.
+  * Replace `setuid()` and `setgid()` with `setreuid()` and `setregid()`.
+  * Make setting change owner user and group independent of daemon user and group.
+  * Fix UB in privileged action setter.
+  * Update dependencies.
+  * Prevent breaking build on non-Unix platforms.
+  * Upgrade to 2024 edition of Rust.
+  * Mark `start()` and `execute()` as unsafe. They should not be called in a multi-threaded process.
+  * Do not change directory by default.
 
 Version 0.5.0
 -------------
