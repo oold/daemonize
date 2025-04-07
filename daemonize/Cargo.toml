@@ -11,4 +11,4 @@ categories = ["os::unix-apis"]
 
 [dependencies]
 errno = "0.3.11"
-libc = "0.2.98"
+libc = "0.2.171"

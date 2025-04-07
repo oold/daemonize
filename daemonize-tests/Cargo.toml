@@ -13,10 +13,10 @@ categories = ["os::unix-apis"]
 publish = false
 
 [dependencies]
-libc = "0.2.98"
+libc = "0.2.171"
 arraystring = "0.3.0"
 daemonize = { path = "../daemonize" }
-os_pipe = "0.9.2"
+os_pipe = "1.2.1"
 
 [dev-dependencies]
-tempfile = "3.2.0"
+tempfile = "3.19.1"
