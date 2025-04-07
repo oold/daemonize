@@ -17,10 +17,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate daemonize_tests;
+#![cfg(feature = "tester")]
+
+extern crate daemonize;
 extern crate tempfile;
 
-use daemonize_tests::{Tester, STDERR_DATA, STDOUT_DATA};
+use daemonize::tester_lib::{Tester, STDERR_DATA, STDOUT_DATA};
 use tempfile::TempDir;
 
 #[test]

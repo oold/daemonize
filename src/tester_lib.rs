@@ -17,15 +17,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate arraystring;
-extern crate daemonize;
-
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
-use daemonize::{Daemonize, Error, Outcome};
+use crate::{Daemonize, Error, Outcome};
 
 const ARG_PID_FILE: &str = "--pid-file";
 const ARG_CHOWN_PID_FILE_USER_STRING: &str = "--chown-pid-file-user-string";
@@ -49,7 +46,7 @@ pub const STDOUT_DATA: &str = "stdout data";
 pub const STDERR_DATA: &str = "stderr data";
 pub const ADDITIONAL_FILE_DATA: &str = "additional file data";
 
-const TESTER_PATH: &str = "../target/debug/examples/tester";
+const TESTER_PATH: &str = "target/debug/examples/tester";
 
 const MAX_WAIT_DURATION: std::time::Duration = std::time::Duration::from_secs(5);
 

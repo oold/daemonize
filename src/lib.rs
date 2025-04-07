@@ -57,6 +57,9 @@
 
 mod error;
 
+#[cfg(feature = "tester")]
+pub mod tester_lib;
+
 extern crate errno;
 extern crate libc;
 

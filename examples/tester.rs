@@ -17,8 +17,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate daemonize_tests;
+extern crate daemonize;
 
 fn main() {
-    daemonize_tests::execute_tester()
+    #[cfg(feature = "tester")]
+    daemonize::tester_lib::execute_tester()
 }
