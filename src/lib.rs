@@ -348,25 +348,37 @@ impl<T> Daemonize<T> {
         self
     }
 
-    /// Start daemonization process, terminate parent after first fork, returns privileged action
+    /// Start daemonization process. Terminate parent after first fork. Returns privileged action
     /// result to the child.
-    pub fn start(self) -> Result<T, Error> {
-        match self.execute() {
-            Outcome::Parent(Ok(Parent {
-                first_child_exit_status,
-            })) => exit(
-                first_child_exit_status
-                    .code()
-                    .unwrap_or_else(|| unsafe { libc::abort() }),
-            ),
-            Outcome::Parent(Err(err)) => Err(err),
-            Outcome::Child(Ok(child)) => Ok(child.privileged_action_result),
-            Outcome::Child(Err(err)) => Err(err),
+    ///
+    /// # Safety
+    ///
+    /// This is not safe to call inside a multi-threaded process. Familiarize yourself with the
+    /// documentation for [fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html).
+    pub unsafe fn start(self) -> Result<T, Error> {
+        unsafe {
+            match self.execute() {
+                Outcome::Parent(Ok(Parent {
+                    first_child_exit_status,
+                })) => exit(
+                    first_child_exit_status
+                        .code()
+                        .unwrap_or_else(|| libc::abort()),
+                ),
+                Outcome::Parent(Err(err)) => Err(err),
+                Outcome::Child(Ok(child)) => Ok(child.privileged_action_result),
+                Outcome::Child(Err(err)) => Err(err),
+            }
         }
     }
 
-    /// Execute daemonization process, don't terminate parent after first fork.
-    pub fn execute(self) -> Outcome<T> {
+    /// Execute daemonization process. Don't terminate parent after first fork.
+    ///
+    /// # Safety
+    ///
+    /// This is not safe to call inside a multi-threaded process. Familiarize yourself with the
+    /// documentation for [fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html).
+    pub unsafe fn execute(self) -> Outcome<T> {
         unsafe {
             match perform_fork() {
                 Ok(Some(first_child_pid)) => Outcome::Parent(match waitpid(first_child_pid) {
@@ -386,7 +398,7 @@ impl<T> Daemonize<T> {
         }
     }
 
-    fn execute_child(self) -> Result<T, ErrorKind> {
+    unsafe fn execute_child(self) -> Result<T, ErrorKind> {
         unsafe {
             set_current_dir(&self.directory)
                 .map_err(|_| ErrorKind::ChangeDirectory(errno::errno().into()))?;
