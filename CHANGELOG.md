@@ -3,6 +3,13 @@ daemonize2 changelog
 
 Here you can see the full list of changes between each daemonize2 release.
 
+Version 0.6.1
+-------------
+
+Released on April 07, 2025
+
+  * Fix broken example link in readme.
+
 Version 0.6.0
 -------------
 
