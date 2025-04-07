@@ -55,6 +55,8 @@
 //! }
 //! ```
 
+#![cfg(unix)]
+
 mod error;
 
 #[cfg(feature = "tester")]

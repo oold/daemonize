@@ -17,9 +17,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[cfg(all(unix, feature = "tester"))]
 extern crate daemonize;
 
 fn main() {
-    #[cfg(feature = "tester")]
+    #[cfg(all(unix, feature = "tester"))]
     daemonize::tester_lib::execute_tester()
 }

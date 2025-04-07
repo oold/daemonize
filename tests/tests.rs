@@ -17,7 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(feature = "tester")]
+#![cfg(all(unix, feature = "tester"))]
 
 extern crate daemonize;
 extern crate tempfile;
