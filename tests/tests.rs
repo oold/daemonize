@@ -22,7 +22,7 @@
 extern crate daemonize;
 extern crate tempfile;
 
-use daemonize::tester_lib::{Tester, STDERR_DATA, STDOUT_DATA};
+use daemonize::tester_lib::{STDERR_DATA, STDOUT_DATA, Tester};
 use tempfile::TempDir;
 
 #[test]

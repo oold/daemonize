@@ -8,6 +8,7 @@ readme = "README.md"
 description = "Library to enable your code run as a daemon process on Unix-like systems."
 keywords = ["daemon", "daemonize", "unix"]
 categories = ["os::unix-apis"]
+edition = "2024"
 
 [features]
 # This feature is for testing purposes only. It enables additional functionality needed for

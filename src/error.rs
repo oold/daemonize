@@ -177,10 +177,7 @@ impl Num for isize {
     }
 }
 
-pub unsafe fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(
-    ret: N,
-    f: F,
-) -> Result<N, ErrorKind> {
+pub fn check_err<N: Num, F: FnOnce(Errno) -> ErrorKind>(ret: N, f: F) -> Result<N, ErrorKind> {
     if ret.is_err() {
         Err(f(errno::errno().into()))
     } else {
