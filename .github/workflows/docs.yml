@@ -1,32 +1,51 @@
-name: Build docs
+name: Docs
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  docs:
+  build:
+    permissions:
+      contents: read
+
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Build docs
+        run: cargo +nightly doc -p daemonize2 --verbose -Z rustdoc-scrape-examples
 
-      - name: Run cargo doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: -p daemonize2
+      - name: Remove lock file
+        run: rm target/doc/.lock
 
-      - name: Deploy docs
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+      - name: Copy index.html
+        run: cp deploy/docs/index.html target/doc/index.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          branch: gh-pages
-          folder: target/doc
-          single-commit: true
+          path: target/doc/
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -10,6 +10,10 @@ keywords = ["daemon", "daemonize", "unix"]
 categories = ["os::unix-apis"]
 edition = "2024"
 
+[[example]]
+name = "complex"
+doc-scrape-examples = true
+
 [features]
 # This feature is for testing purposes only. It enables additional functionality needed for
 # implementing the tester binary.
