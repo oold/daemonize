@@ -30,8 +30,9 @@ jobs:
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features --verbose -- -D warnings
+      - uses: clechasseur/rs-clippy-check@23f6dcf86d7e4e0d98b000bba0bb81ac587c44aa # v4.0.2
+        with:
+          args: --all-targets --all-features
 
       - name: Build
         run: cargo build --all-targets --all-features --verbose
