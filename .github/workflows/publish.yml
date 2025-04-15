@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   publish:
+    name: Publish crate
+
     runs-on: ubuntu-latest
 
     environment: publish
