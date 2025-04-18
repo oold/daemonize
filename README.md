@@ -1,8 +1,11 @@
 # daemonize2
 
 [![Build Status](https://github.com/oold/daemonize/actions/workflows/rust.yml/badge.svg)](https://github.com/oold/daemonize/actions/workflows/rust.yml)
-[![Latest Version](https://img.shields.io/crates/v/daemonize2.svg)](https://crates.io/crates/daemonize2)
 [![docs](https://docs.rs/daemonize2/badge.svg)](https://docs.rs/daemonize2)
+[![Latest Version](https://img.shields.io/crates/v/daemonize2.svg)](https://crates.io/crates/daemonize2)
+
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/oold/daemonize/badge)](https://scorecard.dev/viewer/?uri=github.com/oold/daemonize)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10440/badge)](https://www.bestpractices.dev/projects/10440)
 
 `daemonize2` is a library for writing [SysV daemons](https://man7.org/linux/man-pages/man7/daemon.7.html). It is inspired by the Python library [`daemonize`](https://github.com/thesharp/daemonize) and is based on the original [`daemonize` crate](https://github.com/knsd/daemonize) that went unmaintained.
 
