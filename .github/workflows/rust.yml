@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: clechasseur/rs-clippy-check@23f6dcf86d7e4e0d98b000bba0bb81ac587c44aa # v4.0.2
+      - uses: clechasseur/rs-clippy-check@24d66924f748522acf015e8642b7fb8cd81b4dbc # v4.0.3
         with:
           args: --all-targets --all-features
 
