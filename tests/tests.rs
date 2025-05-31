@@ -22,7 +22,14 @@
 extern crate daemonize2;
 extern crate tempfile;
 
-use daemonize2::tester_lib::{STDERR_DATA, STDOUT_DATA, Tester};
+use std::{
+    fs::Permissions,
+    os::unix::fs::{MetadataExt, PermissionsExt},
+};
+
+use daemonize2::tester_lib::{
+    GROUP_NAME, STDERR_DATA, STDOUT_DATA, Tester, USER_NAME, get_test_gid, get_test_uid,
+};
 use tempfile::TempDir;
 
 #[test]
@@ -100,4 +107,94 @@ fn redirect_stream() {
         std::io::ErrorKind::NotFound
     );
     assert_eq!(&std::fs::read_to_string(&stderr).unwrap(), STDERR_DATA);
+}
+
+#[test]
+fn change_uid() {
+    let data = Tester::new().user_string(USER_NAME).run().unwrap();
+    assert_eq!(data.euid, get_test_uid())
+}
+
+#[test]
+fn change_gid() {
+    let data = Tester::new().group_string(GROUP_NAME).run().unwrap();
+    assert_eq!(data.egid, get_test_gid())
+}
+
+#[test]
+fn chown_pid_file_user() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = tmpdir.path().join("pid");
+
+    let result = Tester::new()
+        .pid_file(&path)
+        .chown_pid_file_user_string(USER_NAME)
+        .run();
+    let pid_content = std::fs::read_to_string(&path).unwrap();
+    assert!(pid_content.ends_with('\n'));
+    let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
+    assert_eq!(result.unwrap().pid, pid);
+
+    let meta = std::fs::metadata(&path).unwrap();
+    assert_eq!(meta.uid(), get_test_uid());
+}
+
+#[test]
+fn chown_pid_file_group() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = tmpdir.path().join("pid");
+
+    let result = Tester::new()
+        .pid_file(&path)
+        .chown_pid_file_group_string(GROUP_NAME)
+        .run();
+    let pid_content = std::fs::read_to_string(&path).unwrap();
+    assert!(pid_content.ends_with('\n'));
+    let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
+    assert_eq!(result.unwrap().pid, pid);
+
+    let meta = std::fs::metadata(&path).unwrap();
+    assert_eq!(meta.gid(), get_test_gid());
+}
+
+#[test]
+fn chroot() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = "/a";
+
+    Tester::new()
+        .working_directory(&tmpdir)
+        .chroot(&tmpdir)
+        .additional_file(path)
+        .run()
+        .unwrap();
+
+    assert!(std::fs::exists(tmpdir.path().join("a")).unwrap());
+}
+
+#[test]
+fn privileged_action() {
+    let tmpdir = tempfile::Builder::new()
+        .permissions(Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let path = tmpdir.path().join("a");
+
+    Tester::new()
+        .user_string(USER_NAME)
+        .group_string(GROUP_NAME)
+        .additional_file(&path)
+        .run()
+        .unwrap();
+
+    assert!(!std::fs::exists(&path).unwrap());
+
+    Tester::new()
+        .user_string(USER_NAME)
+        .group_string(GROUP_NAME)
+        .additional_file_privileged(&path)
+        .run()
+        .unwrap();
+
+    assert!(std::fs::exists(&path).unwrap());
 }

@@ -29,7 +29,7 @@ extern crate errno;
 extern crate libc;
 
 use std::env::set_current_dir;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::fmt;
 use std::fs::File;
 use std::os::fd::OwnedFd;
@@ -639,7 +639,7 @@ fn change_root(path: PathBuf) -> Result<(), ErrorKind> {
     Ok(())
 }
 
-fn get_gid_by_name(name: &CString) -> Option<libc::gid_t> {
+fn get_gid_by_name(name: &CStr) -> Option<libc::gid_t> {
     unsafe {
         let ptr = libc::getgrnam(name.as_ptr() as *const libc::c_char);
         if ptr.is_null() {
@@ -651,7 +651,7 @@ fn get_gid_by_name(name: &CString) -> Option<libc::gid_t> {
     }
 }
 
-fn get_uid_by_name(name: &CString) -> Option<libc::uid_t> {
+fn get_uid_by_name(name: &CStr) -> Option<libc::uid_t> {
     unsafe {
         let ptr = libc::getpwnam(name.as_ptr() as *const libc::c_char);
         if ptr.is_null() {
