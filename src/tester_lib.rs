@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::ffi::CString;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -39,12 +40,15 @@ const ARG_CHROOT: &str = "--chroot";
 const ARG_STDOUT: &str = "--stdout";
 const ARG_STDERR: &str = "--stderr";
 const ARG_ADDITIONAL_FILE: &str = "--additional-file";
+const ARG_ADDITIONAL_FILE_PRIVILEGED: &str = "--additional-file-privileged";
 const ARG_SLEEP_MS: &str = "--sleep-ms";
 const ARG_HUMAN_READABLE: &str = "--human-readable";
 
 pub const STDOUT_DATA: &str = "stdout data";
 pub const STDERR_DATA: &str = "stderr data";
 pub const ADDITIONAL_FILE_DATA: &str = "additional file data";
+pub const USER_NAME: &str = "daemonize-test";
+pub const GROUP_NAME: &str = "daemonize-test";
 
 const TESTER_PATH: &str = "target/debug/examples/tester";
 
@@ -147,6 +151,13 @@ impl Tester {
         self
     }
 
+    pub fn additional_file_privileged<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
+        self.command
+            .arg(ARG_ADDITIONAL_FILE_PRIVILEGED)
+            .arg(path.as_ref());
+        self
+    }
+
     pub fn sleep(&mut self, duration: std::time::Duration) -> &mut Self {
         self.command
             .arg(ARG_SLEEP_MS)
@@ -242,6 +253,7 @@ pub fn execute_tester() {
     }
 
     let mut additional_files = Vec::new();
+    let mut additional_files_privileged = Vec::new();
     let mut sleep_duration = None;
     let mut human_readable = false;
 
@@ -283,6 +295,10 @@ pub fn execute_tester() {
                 additional_files.push(read_value::<PathBuf>(&mut args, &key));
                 daemonize
             }
+            ARG_ADDITIONAL_FILE_PRIVILEGED => {
+                additional_files_privileged.push(read_value::<PathBuf>(&mut args, &key));
+                daemonize
+            }
             ARG_SLEEP_MS => {
                 let ms = read_value::<u64>(&mut args, &key);
                 sleep_duration = Some(std::time::Duration::from_millis(ms));
@@ -298,6 +314,14 @@ pub fn execute_tester() {
         }
     }
 
+    daemonize = daemonize.privileged_action(move || {
+        for file_path in additional_files_privileged {
+            if let Ok(mut file) = std::fs::File::create(&file_path) {
+                file.write_all(ADDITIONAL_FILE_DATA.as_bytes()).ok();
+            }
+        }
+    });
+
     let (mut read_pipe, mut write_pipe) = os_pipe::pipe().expect("unable to open pipe");
 
     match unsafe { daemonize.execute() } {
@@ -308,7 +332,7 @@ pub fn execute_tester() {
                 .read_to_end(&mut data)
                 .expect("unable to read pipe");
             if !human_readable && data.len() != DATA_LEN {
-                panic!("invalid data len");
+                panic!("invalid data len: {}; should be {}", data.len(), DATA_LEN);
             }
             std::io::stdout()
                 .write_all(&data)
@@ -341,6 +365,32 @@ pub fn execute_tester() {
             if let Some(duration) = sleep_duration {
                 std::thread::sleep(duration)
             }
+        }
+    }
+}
+
+pub fn get_test_uid() -> u32 {
+    let name = CString::new(USER_NAME).unwrap();
+    unsafe {
+        let ptr = libc::getpwnam(name.as_ptr() as *const libc::c_char);
+        if ptr.is_null() {
+            panic!("getpwnam failed")
+        } else {
+            let s = &*ptr;
+            s.pw_uid
+        }
+    }
+}
+
+pub fn get_test_gid() -> u32 {
+    let name = CString::new(GROUP_NAME).unwrap();
+    unsafe {
+        let ptr = libc::getgrnam(name.as_ptr() as *const libc::c_char);
+        if ptr.is_null() {
+            panic!("getgrnam failed")
+        } else {
+            let s = &*ptr;
+            s.gr_gid
         }
     }
 }
