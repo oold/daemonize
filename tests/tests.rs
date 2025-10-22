@@ -41,18 +41,20 @@ fn simple() {
 #[test]
 fn chdir() {
     let result = Tester::new().run();
-    assert_eq!(
-        std::path::Path::new(result.unwrap().cwd.as_str()),
-        std::env::current_dir().unwrap()
-    );
+    assert_eq!(result.unwrap().cwd, std::env::current_dir().unwrap());
 
     let result = Tester::new().working_directory("/usr").run();
-    assert_eq!(result.unwrap().cwd.as_str(), "/usr");
+    assert_eq!(result.unwrap().cwd.as_path(), std::path::Path::new("/usr"));
 }
 
 #[test]
 fn umask() {
-    let tmpdir = TempDir::new().unwrap();
+    let tmpdir = if let Some(test_dir) = std::env::var_os("DAEMONIZE_UMASK_TEST_DIR") {
+        std::fs::create_dir_all(&test_dir).expect("cannot create parent directory for umask test");
+        TempDir::new_in(test_dir).unwrap()
+    } else {
+        TempDir::new().unwrap()
+    };
     let path = tmpdir.path().join("umask-test");
 
     let result = Tester::new().umask(0o222).additional_file(&path).run();
