@@ -1,0 +1,9 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "remoteUser": "root",
+    "features": {
+        "ghcr.io/devcontainers/features/git-lfs:1": {}
+    }
+}
