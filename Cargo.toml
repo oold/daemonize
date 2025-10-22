@@ -19,10 +19,10 @@ doc-scrape-examples = true
 [features]
 # This feature is for testing purposes only. It enables additional functionality needed for
 # implementing the tester binary.
-tester = ["dep:arraystring", "dep:os_pipe"]
+tester = ["dep:bincode", "dep:os_pipe"]
 
 [target.'cfg(unix)'.dependencies]
-arraystring = { version = "0.3.0", optional = true }
+bincode = { version = "2.0.1", optional = true }
 errno = "0.3.11"
 libc = "0.2.171"
 os_pipe = { version = "1.2.1", optional = true }

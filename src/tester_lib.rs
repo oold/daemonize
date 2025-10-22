@@ -23,6 +23,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
+use bincode::{Decode, Encode};
+
 use crate::{Daemonize, Error, Outcome};
 
 const ARG_PID_FILE: &str = "--pid-file";
@@ -54,7 +56,7 @@ const TESTER_PATH: &str = "target/debug/examples/tester";
 
 const MAX_WAIT_DURATION: std::time::Duration = std::time::Duration::from_secs(5);
 
-const DATA_LEN: usize = std::mem::size_of::<Result<EnvData, Error>>();
+const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 
 pub struct Tester {
     command: Command,
@@ -200,20 +202,15 @@ impl Tester {
             );
         }
 
-        let mut stdout = [0; DATA_LEN];
-        child
-            .stdout
-            .expect("unable to get stdout")
-            .read_exact(&mut stdout)
-            .expect("unable to read tester stdout");
-
-        unsafe { std::mem::transmute(stdout) }
+        let mut stdout = child.stdout.expect("unable to get stdout");
+        bincode::decode_from_std_read(&mut stdout, BINCODE_CONFIG)
+            .expect("unable to read tester stdout")
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Encode, Decode)]
 pub struct EnvData {
-    pub cwd: arraystring::ArrayString<arraystring::typenum::U255>,
+    pub cwd: PathBuf,
     pub pid: u32,
     pub euid: u32,
     pub egid: u32,
@@ -222,13 +219,7 @@ pub struct EnvData {
 impl EnvData {
     fn new() -> EnvData {
         Self {
-            cwd: arraystring::ArrayString::from_str(
-                std::env::current_dir()
-                    .expect("unable to get current dir")
-                    .to_str()
-                    .expect("invalid path"),
-            )
-            .expect("too long path"),
+            cwd: std::env::current_dir().expect("unable to get current dir"),
             pid: std::process::id(),
             euid: unsafe { libc::geteuid() as u32 },
             egid: unsafe { libc::getegid() as u32 },
@@ -252,6 +243,8 @@ pub fn execute_tester() {
             .unwrap_or_else(|_| panic!("invalid value for key {}", key))
     }
 
+    let mut redirected_stdout = false;
+    let mut redirected_stderr = false;
     let mut additional_files = Vec::new();
     let mut additional_files_privileged = Vec::new();
     let mut sleep_duration = None;
@@ -284,11 +277,13 @@ pub fn execute_tester() {
             ARG_STDOUT => {
                 let file = std::fs::File::create(read_value::<PathBuf>(&mut args, &key))
                     .expect("unable to open stdout file");
+                redirected_stdout = true;
                 daemonize.stdout(file)
             }
             ARG_STDERR => {
                 let file = std::fs::File::create(read_value::<PathBuf>(&mut args, &key))
                     .expect("unable to open stder file");
+                redirected_stderr = true;
                 daemonize.stderr(file)
             }
             ARG_ADDITIONAL_FILE => {
@@ -331,9 +326,6 @@ pub fn execute_tester() {
             read_pipe
                 .read_to_end(&mut data)
                 .expect("unable to read pipe");
-            if !human_readable && data.len() != DATA_LEN {
-                panic!("invalid data len: {}; should be {}", data.len(), DATA_LEN);
-            }
             std::io::stdout()
                 .write_all(&data)
                 .expect("unable to write data")
@@ -342,22 +334,25 @@ pub fn execute_tester() {
             drop(read_pipe);
             let result = result.map(|_| EnvData::new());
 
-            print!("{}", STDOUT_DATA);
-            eprint!("{}", STDERR_DATA);
+            if redirected_stdout {
+                print!("{}", STDOUT_DATA);
+            }
+
+            if redirected_stderr {
+                eprint!("{}", STDERR_DATA);
+            }
 
             for file_path in additional_files {
                 if let Ok(mut file) = std::fs::File::create(&file_path) {
-                    file.write_all(ADDITIONAL_FILE_DATA.as_bytes()).ok();
+                    let _ = file.write_all(ADDITIONAL_FILE_DATA.as_bytes());
                 }
             }
 
             if human_readable {
-                write_pipe
-                    .write_all(format!("{:?}\n", result).as_bytes())
-                    .ok();
+                writeln!(write_pipe, "{result:?}").expect("failed to write human-readable result");
             } else {
-                let data: [u8; DATA_LEN] = unsafe { std::mem::transmute(result) };
-                write_pipe.write_all(&data).ok();
+                bincode::encode_into_std_write(result, &mut write_pipe, BINCODE_CONFIG)
+                    .expect("failed to write bincoded result");
             }
 
             drop(write_pipe);
