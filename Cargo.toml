@@ -1,6 +1,6 @@
 [package]
 name = "daemonize2"
-version = "0.6.1"
+version = "0.6.2"
 license = "MIT OR Apache-2.0"
 authors = ["Fedor Gogolev <knsd@knsd.net>", "Oliver Old <mail@oold.dev>"]
 repository = "https://github.com/oold/daemonize"
@@ -10,7 +10,7 @@ description = "Run your code as SysV daemon on Unix-like systems."
 keywords = ["daemon", "daemonize", "fork", "sysv", "unix"]
 categories = ["os", "os::unix-apis"]
 edition = "2024"
-exclude = [".github/**", "deploy/**"]
+exclude = [".*", "deploy/**"]
 
 [[example]]
 name = "complex"

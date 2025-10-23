@@ -3,6 +3,15 @@ daemonize2 changelog
 
 Here you can see the full list of changes between each daemonize2 release.
 
+Version 0.6.2
+-------------
+
+Released on October 23, 2025
+
+  * Update crates.io meta info.
+  * Add new tests to cover all functionality.
+  * Fix broken tests.
+
 Version 0.6.1
 -------------
 
