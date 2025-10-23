@@ -29,8 +29,8 @@ jobs:
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Check CHANGELOG.md
-        run: grep -Fqx "Version ${{ github.ref_name }}"
+        run: grep -Fqx "Version ${{ github.ref_name }}" CHANGELOG.md
       - name: Check Cargo.toml
-        run: grep -Fqx "version = \"${{ github.ref_name }}\""
+        run: grep -Fqx "version = \"${{ github.ref_name }}\"" Cargo.toml
       - name: Publish
         run: cargo publish --verbose
