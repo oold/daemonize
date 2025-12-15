@@ -18,33 +18,15 @@
 // limitations under the License.
 
 use std::ffi::CString;
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::io::{Read, Write, stdin};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::str::FromStr;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use bincode::{Decode, Encode};
 
-use crate::{Daemonize, Error, Outcome};
-
-const ARG_PID_FILE: &str = "--pid-file";
-const ARG_CHOWN_PID_FILE_USER_STRING: &str = "--chown-pid-file-user-string";
-const ARG_CHOWN_PID_FILE_USER_NUM: &str = "--chown-pid-file-user-num";
-const ARG_CHOWN_PID_FILE_GROUP_STRING: &str = "--chown-pid-file-group-string";
-const ARG_CHOWN_PID_FILE_GROUP_NUM: &str = "--chown-pid-file-group-num";
-const ARG_WORKING_DIRECTORY: &str = "--working-directory";
-const ARG_USER_STRING: &str = "--user-string";
-const ARG_USER_NUM: &str = "--user-num";
-const ARG_GROUP_STRING: &str = "--group-string";
-const ARG_GROUP_NUM: &str = "--group-num";
-const ARG_UMASK: &str = "--umask";
-const ARG_CHROOT: &str = "--chroot";
-const ARG_STDOUT: &str = "--stdout";
-const ARG_STDERR: &str = "--stderr";
-const ARG_ADDITIONAL_FILE: &str = "--additional-file";
-const ARG_ADDITIONAL_FILE_PRIVILEGED: &str = "--additional-file-privileged";
-const ARG_SLEEP_MS: &str = "--sleep-ms";
-const ARG_HUMAN_READABLE: &str = "--human-readable";
+use crate::{Daemonize, Error, Group, Mask, Outcome, User};
 
 pub const STDOUT_DATA: &str = "stdout data";
 pub const STDERR_DATA: &str = "stderr data";
@@ -54,137 +36,118 @@ pub const GROUP_NAME: &str = "daemonize-test";
 
 const TESTER_PATH: &str = "target/debug/examples/tester";
 
-const MAX_WAIT_DURATION: std::time::Duration = std::time::Duration::from_secs(5);
+const MAX_WAIT_DURATION: Duration = Duration::from_secs(5);
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 
-pub struct Tester {
-    command: Command,
+#[derive(Encode, Decode, Default)]
+pub struct TesterConfig {
+    pid_file: Option<PathBuf>,
+    chown_pid_file_user: Option<User>,
+    chown_pid_file_group: Option<Group>,
+    working_directory: Option<PathBuf>,
+    user: Option<User>,
+    group: Option<Group>,
+    umask: Option<Mask>,
+    chroot: Option<PathBuf>,
+    stdout: Option<PathBuf>,
+    stderr: Option<PathBuf>,
+    additional_files: Vec<PathBuf>,
+    additional_files_privileged: Vec<PathBuf>,
+    sleep_duration: Option<Duration>,
 }
 
-impl Default for Tester {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Tester {
+impl TesterConfig {
     pub fn new() -> Self {
-        let command = Command::new(TESTER_PATH);
-        Self { command }
+        Default::default()
     }
 
-    pub fn pid_file<F: AsRef<Path>>(&mut self, pid_file: F) -> &mut Self {
-        self.command.arg(ARG_PID_FILE).arg(pid_file.as_ref());
+    pub fn pid_file<F: Into<PathBuf>>(&mut self, pid_file: F) -> &mut Self {
+        self.pid_file = Some(pid_file.into());
         self
     }
 
-    pub fn chown_pid_file_user_string(&mut self, user: &str) -> &mut Self {
-        self.command.arg(ARG_CHOWN_PID_FILE_USER_STRING).arg(user);
+    pub fn chown_pid_file_user<U: Into<User>>(&mut self, user: U) -> &mut Self {
+        self.chown_pid_file_user = Some(user.into());
         self
     }
 
-    pub fn chown_pid_file_user_num(&mut self, user: u32) -> &mut Self {
-        self.command
-            .arg(ARG_CHOWN_PID_FILE_USER_NUM)
-            .arg(user.to_string());
+    pub fn chown_pid_file_group<G: Into<Group>>(&mut self, group: G) -> &mut Self {
+        self.chown_pid_file_group = Some(group.into());
         self
     }
 
-    pub fn chown_pid_file_group_string(&mut self, group: &str) -> &mut Self {
-        self.command.arg(ARG_CHOWN_PID_FILE_GROUP_STRING).arg(group);
+    pub fn working_directory<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.working_directory = Some(path.into());
         self
     }
 
-    pub fn chown_pid_file_group_num(&mut self, group: u32) -> &mut Self {
-        self.command
-            .arg(ARG_CHOWN_PID_FILE_GROUP_NUM)
-            .arg(group.to_string());
+    pub fn user<U: Into<User>>(&mut self, user: U) -> &mut Self {
+        self.user = Some(user.into());
         self
     }
 
-    pub fn working_directory<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command.arg(ARG_WORKING_DIRECTORY).arg(path.as_ref());
+    pub fn group<G: Into<Group>>(&mut self, group: G) -> &mut Self {
+        self.group = Some(group.into());
         self
     }
 
-    pub fn user_string(&mut self, user: &str) -> &mut Self {
-        self.command.arg(ARG_USER_STRING).arg(user);
+    pub fn umask<M: Into<Mask>>(&mut self, umask: M) -> &mut Self {
+        self.umask = Some(umask.into());
         self
     }
 
-    pub fn user_num(&mut self, user: u32) -> &mut Self {
-        self.command.arg(ARG_USER_NUM).arg(user.to_string());
+    pub fn chroot<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.chroot = Some(path.into());
         self
     }
 
-    pub fn group_string(&mut self, group: &str) -> &mut Self {
-        self.command.arg(ARG_GROUP_STRING).arg(group);
+    pub fn stdout<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.stdout = Some(path.into());
         self
     }
 
-    pub fn group_num(&mut self, group: u32) -> &mut Self {
-        self.command.arg(ARG_GROUP_NUM).arg(group.to_string());
+    pub fn stderr<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.stderr = Some(path.into());
         self
     }
 
-    pub fn umask(&mut self, umask: u32) -> &mut Self {
-        self.command.arg(ARG_UMASK).arg(umask.to_string());
+    pub fn additional_file<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.additional_files.push(path.into());
         self
     }
 
-    pub fn chroot<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command.arg(ARG_CHROOT).arg(path.as_ref());
+    pub fn additional_file_privileged<F: Into<PathBuf>>(&mut self, path: F) -> &mut Self {
+        self.additional_files_privileged.push(path.into());
         self
     }
 
-    pub fn stdout<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command.arg(ARG_STDOUT).arg(path.as_ref());
+    pub fn sleep(&mut self, duration: Duration) -> &mut Self {
+        self.sleep_duration = Some(duration);
         self
     }
 
-    pub fn stderr<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command.arg(ARG_STDERR).arg(path.as_ref());
-        self
-    }
-
-    pub fn additional_file<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command.arg(ARG_ADDITIONAL_FILE).arg(path.as_ref());
-        self
-    }
-
-    pub fn additional_file_privileged<F: AsRef<Path>>(&mut self, path: F) -> &mut Self {
-        self.command
-            .arg(ARG_ADDITIONAL_FILE_PRIVILEGED)
-            .arg(path.as_ref());
-        self
-    }
-
-    pub fn sleep(&mut self, duration: std::time::Duration) -> &mut Self {
-        self.command
-            .arg(ARG_SLEEP_MS)
-            .arg(duration.as_millis().to_string());
-        self
-    }
-
-    pub fn run(&mut self) -> Result<EnvData, Error> {
-        let mut child = self
-            .command
+    pub fn run(&self) -> Result<EnvData, Error> {
+        let mut child = Command::new(TESTER_PATH)
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .expect("unable to spawn child");
 
-        let st = std::time::Instant::now();
+        bincode::encode_into_std_write(self, &mut child.stdin.take().unwrap(), BINCODE_CONFIG)
+            .expect("failed to encode config");
+
+        let st = Instant::now();
 
         let exit_status = loop {
-            let now = std::time::Instant::now();
+            let now = Instant::now();
             if now - st > MAX_WAIT_DURATION {
                 panic!("wait for result timeout")
             }
             match child.try_wait().expect("unable to wait for result") {
                 Some(result) => break result,
-                None => std::thread::sleep(std::time::Duration::from_millis(1)),
+                None => sleep(Duration::from_millis(1)),
             }
         };
 
@@ -229,89 +192,58 @@ impl EnvData {
 
 pub fn execute_tester() {
     let mut daemonize = Daemonize::new();
-    let mut args = std::env::args().skip(1);
+    let config: TesterConfig = bincode::decode_from_std_read(&mut stdin(), BINCODE_CONFIG)
+        .expect("failed to decode config");
 
-    fn read_value<T: FromStr>(args: &mut dyn Iterator<Item = String>, key: &str) -> T
-    where
-        <T as FromStr>::Err: std::fmt::Debug,
-    {
-        let value = args
-            .next()
-            .unwrap_or_else(|| panic!("missing value for key {}", key));
-        value
-            .parse()
-            .unwrap_or_else(|_| panic!("invalid value for key {}", key))
+    if let Some(f) = config.pid_file {
+        daemonize = daemonize.pid_file(f);
+    }
+
+    if let Some(u) = config.chown_pid_file_user {
+        daemonize = daemonize.chown_pid_file_user(u);
+    }
+
+    if let Some(g) = config.chown_pid_file_group {
+        daemonize = daemonize.chown_pid_file_group(g);
+    }
+
+    if let Some(wd) = config.working_directory {
+        daemonize = daemonize.working_directory(wd);
+    }
+
+    if let Some(u) = config.user {
+        daemonize = daemonize.user(u);
+    }
+
+    if let Some(g) = config.group {
+        daemonize = daemonize.group(g);
+    }
+
+    if let Some(m) = config.umask {
+        daemonize = daemonize.umask(m);
+    }
+
+    if let Some(chroot) = config.chroot {
+        daemonize = daemonize.chroot(chroot);
     }
 
     let mut redirected_stdout = false;
-    let mut redirected_stderr = false;
-    let mut additional_files = Vec::new();
-    let mut additional_files_privileged = Vec::new();
-    let mut sleep_duration = None;
-    let mut human_readable = false;
+    if let Some(stdout) = config.stdout {
+        let file = std::fs::File::create(stdout).expect("unable to open stdout file");
+        daemonize = daemonize.stdout(file);
+        redirected_stdout = true;
+    }
 
-    while let Some(key) = args.next() {
-        daemonize = match key.as_str() {
-            ARG_PID_FILE => daemonize.pid_file(read_value::<PathBuf>(&mut args, &key)),
-            ARG_CHOWN_PID_FILE_USER_STRING => {
-                daemonize.chown_pid_file_user(read_value::<String>(&mut args, &key).as_str())
-            }
-            ARG_CHOWN_PID_FILE_USER_NUM => {
-                daemonize.chown_pid_file_user(read_value::<u32>(&mut args, &key))
-            }
-            ARG_CHOWN_PID_FILE_GROUP_STRING => {
-                daemonize.chown_pid_file_group(read_value::<String>(&mut args, &key).as_str())
-            }
-            ARG_CHOWN_PID_FILE_GROUP_NUM => {
-                daemonize.chown_pid_file_group(read_value::<u32>(&mut args, &key))
-            }
-            ARG_WORKING_DIRECTORY => {
-                daemonize.working_directory(read_value::<PathBuf>(&mut args, &key))
-            }
-            ARG_USER_STRING => daemonize.user(read_value::<String>(&mut args, &key).as_str()),
-            ARG_USER_NUM => daemonize.user(read_value::<u32>(&mut args, &key)),
-            ARG_GROUP_STRING => daemonize.group(read_value::<String>(&mut args, &key).as_str()),
-            ARG_GROUP_NUM => daemonize.group(read_value::<u32>(&mut args, &key)),
-            ARG_UMASK => daemonize.umask(read_value::<u32>(&mut args, &key)),
-            ARG_CHROOT => daemonize.chroot(read_value::<PathBuf>(&mut args, &key)),
-            ARG_STDOUT => {
-                let file = std::fs::File::create(read_value::<PathBuf>(&mut args, &key))
-                    .expect("unable to open stdout file");
-                redirected_stdout = true;
-                daemonize.stdout(file)
-            }
-            ARG_STDERR => {
-                let file = std::fs::File::create(read_value::<PathBuf>(&mut args, &key))
-                    .expect("unable to open stder file");
-                redirected_stderr = true;
-                daemonize.stderr(file)
-            }
-            ARG_ADDITIONAL_FILE => {
-                additional_files.push(read_value::<PathBuf>(&mut args, &key));
-                daemonize
-            }
-            ARG_ADDITIONAL_FILE_PRIVILEGED => {
-                additional_files_privileged.push(read_value::<PathBuf>(&mut args, &key));
-                daemonize
-            }
-            ARG_SLEEP_MS => {
-                let ms = read_value::<u64>(&mut args, &key);
-                sleep_duration = Some(std::time::Duration::from_millis(ms));
-                daemonize
-            }
-            ARG_HUMAN_READABLE => {
-                human_readable = true;
-                daemonize
-            }
-            key => {
-                panic!("unknown key: {}", key)
-            }
-        }
+    let mut redirected_stderr = false;
+    if let Some(stderr) = config.stderr {
+        let file = std::fs::File::create(stderr).expect("unable to open stder file");
+        daemonize = daemonize.stderr(file);
+        redirected_stderr = true;
     }
 
     daemonize = daemonize.privileged_action(move || {
-        for file_path in additional_files_privileged {
-            if let Ok(mut file) = std::fs::File::create(&file_path) {
+        for file_path in config.additional_files_privileged {
+            if let Ok(mut file) = std::fs::File::create(file_path) {
                 file.write_all(ADDITIONAL_FILE_DATA.as_bytes()).ok();
             }
         }
@@ -342,22 +274,18 @@ pub fn execute_tester() {
                 eprint!("{}", STDERR_DATA);
             }
 
-            for file_path in additional_files {
-                if let Ok(mut file) = std::fs::File::create(&file_path) {
+            for file_path in config.additional_files {
+                if let Ok(mut file) = std::fs::File::create(file_path) {
                     let _ = file.write_all(ADDITIONAL_FILE_DATA.as_bytes());
                 }
             }
 
-            if human_readable {
-                writeln!(write_pipe, "{result:?}").expect("failed to write human-readable result");
-            } else {
-                bincode::encode_into_std_write(result, &mut write_pipe, BINCODE_CONFIG)
-                    .expect("failed to write bincoded result");
-            }
+            bincode::encode_into_std_write(result, &mut write_pipe, BINCODE_CONFIG)
+                .expect("failed to write bincoded result");
 
             drop(write_pipe);
 
-            if let Some(duration) = sleep_duration {
+            if let Some(duration) = config.sleep_duration {
                 std::thread::sleep(duration)
             }
         }

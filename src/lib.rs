@@ -44,6 +44,7 @@ use self::error::check_err;
 pub use self::error::{Error, ErrorKind};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
 enum UserImpl {
     Name(String),
     Id(libc::uid_t),
@@ -51,6 +52,7 @@ enum UserImpl {
 
 /// Expects system user ID or name. If a name is provided, it will be resolved to an ID later.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
 pub struct User {
     inner: UserImpl,
 }
@@ -72,6 +74,7 @@ impl From<u32> for User {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
 enum GroupImpl {
     Name(String),
     Id(libc::gid_t),
@@ -79,6 +82,7 @@ enum GroupImpl {
 
 /// Expects system group ID or name. If a name is provided, it will be resolved to an ID later.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
 pub struct Group {
     inner: GroupImpl,
 }
@@ -101,6 +105,7 @@ impl From<u32> for Group {
 
 /// File mode creation mask.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
 pub struct Mask {
     inner: libc::mode_t,
 }
