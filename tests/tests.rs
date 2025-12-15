@@ -28,22 +28,22 @@ use std::{
 };
 
 use daemonize2::tester_lib::{
-    GROUP_NAME, STDERR_DATA, STDOUT_DATA, Tester, USER_NAME, get_test_gid, get_test_uid,
+    GROUP_NAME, STDERR_DATA, STDOUT_DATA, TesterConfig, USER_NAME, get_test_gid, get_test_uid,
 };
 use tempfile::TempDir;
 
 #[test]
 fn simple() {
-    let result = Tester::new().run();
+    let result = TesterConfig::new().run();
     assert!(result.is_ok())
 }
 
 #[test]
 fn chdir() {
-    let result = Tester::new().run();
+    let result = TesterConfig::new().run();
     assert_eq!(result.unwrap().cwd, std::env::current_dir().unwrap());
 
-    let result = Tester::new().working_directory("/usr").run();
+    let result = TesterConfig::new().working_directory("/usr").run();
     assert_eq!(result.unwrap().cwd.as_path(), std::path::Path::new("/usr"));
 }
 
@@ -57,7 +57,10 @@ fn umask() {
     };
     let path = tmpdir.path().join("umask-test");
 
-    let result = Tester::new().umask(0o222).additional_file(&path).run();
+    let result = TesterConfig::new()
+        .umask(0o222)
+        .additional_file(&path)
+        .run();
     assert!(result.is_ok());
     assert!(path.metadata().unwrap().permissions().readonly());
 }
@@ -67,7 +70,7 @@ fn pid() {
     let tmpdir = TempDir::new().unwrap();
     let path = tmpdir.path().join("pid");
 
-    let result = Tester::new()
+    let result = TesterConfig::new()
         .pid_file(&path)
         .sleep(std::time::Duration::from_secs(5))
         .run();
@@ -76,7 +79,7 @@ fn pid() {
     let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
     assert_eq!(result.unwrap().pid, pid);
 
-    let result = Tester::new().pid_file(&path).run();
+    let result = TesterConfig::new().pid_file(&path).run();
     assert!(result.is_err());
 }
 
@@ -86,7 +89,11 @@ fn redirect_stream() {
     let stdout = tmpdir.path().join("stdout");
     let stderr = tmpdir.path().join("stderr");
 
-    Tester::new().stdout(&stdout).stderr(&stderr).run().unwrap();
+    TesterConfig::new()
+        .stdout(&stdout)
+        .stderr(&stderr)
+        .run()
+        .unwrap();
 
     assert_eq!(&std::fs::read_to_string(&stdout).unwrap(), STDOUT_DATA);
     assert_eq!(&std::fs::read_to_string(&stderr).unwrap(), STDERR_DATA);
@@ -94,7 +101,7 @@ fn redirect_stream() {
     std::fs::remove_file(&stdout).unwrap();
     std::fs::remove_file(&stderr).unwrap();
 
-    Tester::new().stdout(&stdout).run().unwrap();
+    TesterConfig::new().stdout(&stdout).run().unwrap();
     assert_eq!(&std::fs::read_to_string(&stdout).unwrap(), STDOUT_DATA);
     assert_eq!(
         std::fs::metadata(&stderr).unwrap_err().kind(),
@@ -103,7 +110,7 @@ fn redirect_stream() {
 
     std::fs::remove_file(&stdout).unwrap();
 
-    Tester::new().stderr(&stderr).run().unwrap();
+    TesterConfig::new().stderr(&stderr).run().unwrap();
     assert_eq!(
         std::fs::metadata(&stdout).unwrap_err().kind(),
         std::io::ErrorKind::NotFound
@@ -113,13 +120,13 @@ fn redirect_stream() {
 
 #[test]
 fn change_uid() {
-    let data = Tester::new().user_string(USER_NAME).run().unwrap();
+    let data = TesterConfig::new().user(USER_NAME).run().unwrap();
     assert_eq!(data.euid, get_test_uid())
 }
 
 #[test]
 fn change_gid() {
-    let data = Tester::new().group_string(GROUP_NAME).run().unwrap();
+    let data = TesterConfig::new().group(GROUP_NAME).run().unwrap();
     assert_eq!(data.egid, get_test_gid())
 }
 
@@ -128,9 +135,9 @@ fn chown_pid_file_user() {
     let tmpdir = TempDir::new().unwrap();
     let path = tmpdir.path().join("pid");
 
-    let result = Tester::new()
+    let result = TesterConfig::new()
         .pid_file(&path)
-        .chown_pid_file_user_string(USER_NAME)
+        .chown_pid_file_user(USER_NAME)
         .run();
     let pid_content = std::fs::read_to_string(&path).unwrap();
     assert!(pid_content.ends_with('\n'));
@@ -146,9 +153,9 @@ fn chown_pid_file_group() {
     let tmpdir = TempDir::new().unwrap();
     let path = tmpdir.path().join("pid");
 
-    let result = Tester::new()
+    let result = TesterConfig::new()
         .pid_file(&path)
-        .chown_pid_file_group_string(GROUP_NAME)
+        .chown_pid_file_group(GROUP_NAME)
         .run();
     let pid_content = std::fs::read_to_string(&path).unwrap();
     assert!(pid_content.ends_with('\n'));
@@ -164,9 +171,9 @@ fn chroot() {
     let tmpdir = TempDir::new().unwrap();
     let path = "/a";
 
-    Tester::new()
-        .working_directory(&tmpdir)
-        .chroot(&tmpdir)
+    TesterConfig::new()
+        .working_directory(tmpdir.path())
+        .chroot(tmpdir.path())
         .additional_file(path)
         .run()
         .unwrap();
@@ -182,18 +189,18 @@ fn privileged_action() {
         .unwrap();
     let path = tmpdir.path().join("a");
 
-    Tester::new()
-        .user_string(USER_NAME)
-        .group_string(GROUP_NAME)
+    TesterConfig::new()
+        .user(USER_NAME)
+        .group(GROUP_NAME)
         .additional_file(&path)
         .run()
         .unwrap();
 
     assert!(!std::fs::exists(&path).unwrap());
 
-    Tester::new()
-        .user_string(USER_NAME)
-        .group_string(GROUP_NAME)
+    TesterConfig::new()
+        .user(USER_NAME)
+        .group(GROUP_NAME)
         .additional_file_privileged(&path)
         .run()
         .unwrap();
