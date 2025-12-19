@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/rust:latest@sha256:884de394ad31255888950dc8d4a57ea0201908ea89af5ae68db6fc2ae2f562b3
+FROM mcr.microsoft.com/devcontainers/rust:latest@sha256:282e805f934b4d965bc07eaf35677d51aaa18b46b2a6cfa666178a7e6da9c287
 
 # ACL shenanigans are breaking the umask test. Create an unaffected directory.
 ENV DAEMONIZE_UMASK_TEST_DIR=/daemonize_umask_test
