@@ -36,7 +36,7 @@ use std::os::fd::OwnedFd;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::process::ExitStatusExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{ExitStatus, exit};
 
 use self::error::check_err;
@@ -275,8 +275,8 @@ impl Daemonize<()> {
 
 impl<T> Daemonize<T> {
     /// Create pid-file at `path`, lock it exclusive and write daemon pid.
-    pub fn pid_file<F: AsRef<Path>>(mut self, path: F) -> Self {
-        self.pid_file = Some(path.as_ref().to_owned());
+    pub fn pid_file<F: Into<PathBuf>>(mut self, path: F) -> Self {
+        self.pid_file = Some(path.into());
         self
     }
 
@@ -293,8 +293,8 @@ impl<T> Daemonize<T> {
     }
 
     /// Change working directory to `path`.
-    pub fn working_directory<F: AsRef<Path>>(mut self, path: F) -> Self {
-        self.directory = Some(path.as_ref().to_owned());
+    pub fn working_directory<F: Into<PathBuf>>(mut self, path: F) -> Self {
+        self.directory = Some(path.into());
         self
     }
 
@@ -317,8 +317,8 @@ impl<T> Daemonize<T> {
     }
 
     /// Change root to `path`
-    pub fn chroot<F: AsRef<Path>>(mut self, path: F) -> Self {
-        self.root = Some(path.as_ref().to_owned());
+    pub fn chroot<F: Into<PathBuf>>(mut self, path: F) -> Self {
+        self.root = Some(path.into());
         self
     }
 
