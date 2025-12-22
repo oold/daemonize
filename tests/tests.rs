@@ -41,10 +41,16 @@ fn simple() {
 #[test]
 fn chdir() {
     let result = TesterConfig::new().run();
-    assert_eq!(result.unwrap().cwd, std::env::current_dir().unwrap());
+    assert_eq!(
+        result.unwrap().cwd.into_inner(),
+        std::env::current_dir().unwrap()
+    );
 
     let result = TesterConfig::new().working_directory("/usr").run();
-    assert_eq!(result.unwrap().cwd.as_path(), std::path::Path::new("/usr"));
+    assert_eq!(
+        result.unwrap().cwd.into_inner().as_path(),
+        std::path::Path::new("/usr")
+    );
 }
 
 #[test]
@@ -76,7 +82,7 @@ fn pid() {
         .run();
     let pid_content = std::fs::read_to_string(&path).unwrap();
     assert!(pid_content.ends_with('\n'));
-    let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
+    let pid: u32 = pid_content[..pid_content.len() - 1].parse().unwrap();
     assert_eq!(result.unwrap().pid, pid);
 
     let result = TesterConfig::new().pid_file(&path).run();
@@ -141,7 +147,7 @@ fn chown_pid_file_user() {
         .run();
     let pid_content = std::fs::read_to_string(&path).unwrap();
     assert!(pid_content.ends_with('\n'));
-    let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
+    let pid: u32 = pid_content[..pid_content.len() - 1].parse().unwrap();
     assert_eq!(result.unwrap().pid, pid);
 
     let meta = std::fs::metadata(&path).unwrap();
@@ -159,7 +165,7 @@ fn chown_pid_file_group() {
         .run();
     let pid_content = std::fs::read_to_string(&path).unwrap();
     assert!(pid_content.ends_with('\n'));
-    let pid = pid_content[..pid_content.len() - 1].parse().unwrap();
+    let pid: u32 = pid_content[..pid_content.len() - 1].parse().unwrap();
     assert_eq!(result.unwrap().pid, pid);
 
     let meta = std::fs::metadata(&path).unwrap();

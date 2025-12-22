@@ -21,7 +21,10 @@ pub type Errno = libc::c_int;
 
 /// Error type returned by `Daemonize::start()`.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(
+    feature = "tester",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct Error(ErrorKind);
 
 impl Error {
@@ -32,7 +35,10 @@ impl Error {
 
 /// Error kind used inside `struct Error`.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-#[cfg_attr(feature = "tester", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(
+    feature = "tester",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub enum ErrorKind {
     Fork(Errno),
     Wait(Errno),

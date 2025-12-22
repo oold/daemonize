@@ -19,13 +19,13 @@ doc-scrape-examples = true
 [features]
 # This feature is for testing purposes only. It enables additional functionality needed for
 # implementing the tester binary.
-tester = ["dep:bincode", "dep:os_pipe"]
+tester = ["dep:os_pipe", "dep:rkyv"]
 
 [target.'cfg(unix)'.dependencies]
-bincode = { version = "2.0.1", optional = true }
 errno = "0.3.11"
 libc = "0.2.171"
 os_pipe = { version = "1.2.1", optional = true }
+rkyv = { version = "0.8.12", optional = true }
 
 [target.'cfg(unix)'.dev-dependencies]
 tempfile = "3.19.1"
