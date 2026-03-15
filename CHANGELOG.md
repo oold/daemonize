@@ -3,6 +3,14 @@ daemonize2 changelog
 
 Here you can see the full list of changes between each daemonize2 release.
 
+Version 0.7.0
+-------------
+
+Released on March 15, 2026
+
+  * Update `pid_file()`, `working_directory()`, and `chroot()` to take an `Into<PathBuf>` instead of `AsRef<Path>`.
+  * Replace test dependency `bincode` with `rkyv`.
+
 Version 0.6.2
 -------------
 
